@@ -99,7 +99,7 @@
           check(!unsafeRow.querySelector('.book-cover img'), 'A blank ISBN does not request a cover');
 
           set('#search', 'author');
-          check([...doc.querySelectorAll('#book-list li')].every(visible), 'Search finds matching authors');
+          check(visible(validRow) && visible(invalidRow) && !visible(unsafeRow), 'Search finds matching authors');
           set('#filter-language', 'Malayalam', 'change');
           set('#filter-type', 'Nonfiction', 'change');
           set('#filter-status', 'Want to read', 'change');
@@ -150,6 +150,10 @@
           doc = shelf.contentDocument;
           check(doc.querySelector('#notice').textContent.length > 0, 'A save failure is explained');
           shelf.contentWindow.Storage.prototype.setItem = originalSetItem;
+          const recoveryStatus = doc.querySelector('#book-list li .status-select');
+          recoveryStatus.value = recoveryStatus.value === 'Finished' ? 'Want to read' : 'Finished';
+          fire(recoveryStatus, 'change');
+          check(doc.querySelector('#notice').textContent === 'Reading status updated.', 'A successful save clears an earlier warning');
 
           output.textContent = 'PASS: malformed storage, add, ISBN cover/fallback, safe text, search, filters, status, removal, persistence, and storage warning';
           document.title = 'PASS — My Reading Shelf browser smoke test';

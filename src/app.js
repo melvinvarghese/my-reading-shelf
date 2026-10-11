@@ -143,9 +143,9 @@
     status.value = book.status;
     status.addEventListener('change', () => {
       books = setBookStatus(books, book.id, status.value);
-      saveBooks();
+      const saved = saveBooks();
       updateFiltersAndRows();
-      if (!notice.dataset.kind || notice.dataset.kind !== 'warning') showNotice('Reading status updated.');
+      if (saved) showNotice('Reading status updated.');
     });
     controls.append(status);
 
@@ -159,9 +159,9 @@
       rows.get(book.id)?.remove();
       rows.delete(book.id);
       refreshLanguageFilter();
-      saveBooks();
+      const saved = saveBooks();
       updateFiltersAndRows();
-      if (!notice.dataset.kind || notice.dataset.kind !== 'warning') showNotice('Book removed from your shelf.');
+      if (saved) showNotice('Book removed from your shelf.');
     });
     controls.append(remove);
     row.append(detail, controls);
