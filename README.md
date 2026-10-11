@@ -39,19 +39,7 @@ and run:
 node --test tests/*.test.cjs
 ```
 
-## Publish the code to GitHub
 
-GitHub Desktop can publish the project without typing Git commands.
-
-1. Extract the project folder onto your computer.
-2. Install GitHub Desktop and sign in to your GitHub account.
-3. In GitHub Desktop, choose **File → Add Local Repository**, then select the
-   `my-reading-shelf` folder.
-4. Choose **Publish repository**. Enter a repository name and choose whether it
-   should be public or private, then publish it to your GitHub account.
-
-GitHub's [guide to adding an existing project](https://docs.github.com/en/desktop/adding-and-cloning-repositories/adding-an-existing-project-to-github-using-github-desktop)
-shows these steps with screenshots.
 
 ## Optional: show the website with GitHub Pages
 
