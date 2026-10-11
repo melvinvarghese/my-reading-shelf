@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>My Reading Shelf browser smoke test</title>
+  </head>
+  <body>
+    <h1>Browser smoke test</h1>
+    <pre id="results" role="status">Running…</pre>
+    <iframe id="shelf" title="Reading shelf under test" hidden></iframe>
+    <script>
+      const output = document.querySelector('#results');
+      const shelf = document.querySelector('#shelf');
+      const storageKey = 'my-reading-shelf.books.v1';
+      const check = (condition, message) => {
+        if (!condition) throw new Error(message);
+      };
+      const loadShelf = () => new Promise((resolve) => {
+        shelf.addEventListener('load', resolve, { once: true });
+        shelf.src = '../index.html';
+      });
+      const fire = (element, type) => {
+        element.dispatchEvent(
+          new shelf.contentWindow.Event(type, { bubbles: true, cancelable: true }),
+        );
+      };
+      const set = (selector, value, event = 'input') => {
+        const element = shelf.contentDocument.querySelector(selector);
+        check(element, `Missing ${selector}`);
+        element.value = value;
+        fire(element, event);
+      };
+      const addBook = (book) => {
+        const doc = shelf.contentDocument;
+        for (const [field, value] of Object.entries(book)) set(`#${field}`, value);
+        fire(doc.querySelector('#book-form'), 'submit');
+      };
+      const row = (id) => shelf.contentDocument.querySelector(`[data-book-id="${id}"]`);
+      const visible = (element) => !element.hidden;
+      const wait = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+      (async () => {
+        try {
+          localStorage.clear();
+          localStorage.setItem(storageKey, '{malformed');
+          await loadShelf();
+          let doc = shelf.contentDocument;
+          check(doc.querySelector('#title'), 'The title field is present');
+          check(doc.querySelector('#isbn'), 'The optional ISBN field is present');
+          check(doc.querySelector('#notice').textContent.length > 0, 'Malformed saved data is explained');
+          check(doc.querySelector('#empty-state'), 'The empty-shelf guidance is present');
+
+          addBook({
+            title: 'title',
+            author: 'author',
+            language: 'English',
+            type: 'Fiction',
+            isbn: '978-0-385-53322-5',
+          });
+          check(row('book-1') || doc.querySelector('#book-list li'), 'A book is added');
+          await wait();
+          doc = shelf.contentDocument;
+          const validRow = doc.querySelector('#book-list li');
+          const validImage = validRow.querySelector('.book-cover img');
+          check(validImage, 'A valid ISBN creates one cover image');
+          check(validImage.loading === 'lazy', 'The cover image is lazy-loaded');
+          check(
+            validImage.src === 'https://covers.openlibrary.org/b/isbn/9780385533225-M.jpg?default=false',
+            'The cover URL contains the normalized ISBN',
+          );
+
+          addBook({
+            title: 'title',
+            author: 'author',
+            language: 'Malayalam',
+            type: 'Nonfiction',
+            isbn: 'bad-isbn',
+          });
+          await wait();
+          doc = shelf.contentDocument;
+          const rows = [...doc.querySelectorAll('#book-list li')];
+          check(rows.length === 2, 'A non-empty invalid ISBN does not block saving');
+          const invalidRow = rows.find((item) => item !== validRow);
+          check(!invalidRow.querySelector('.book-cover img'), 'An invalid ISBN does not request a cover');
+          const unsafeTitle = '<img src=x onerror=alert(1)>';
+          set('#title', unsafeTitle);
+          set('#author', 'HTML-like title test');
+          set('#language', 'English');
+          set('#type', 'Fiction', 'change');
+          set('#isbn', '');
+          fire(doc.querySelector('#book-form'), 'submit');
+          await wait();
+          doc = shelf.contentDocument;
+          const unsafeRow = [...doc.querySelectorAll('#book-list li')].find(
+            (item) => item.querySelector('.book-title').textContent === unsafeTitle,
+          );
+          check(unsafeRow, 'HTML-like input is displayed literally');
+          check(!unsafeRow.querySelector('.book-title img'), 'HTML-like input creates no element');
+          check(!unsafeRow.querySelector('.book-cover img'), 'A blank ISBN does not request a cover');
+
+          set('#search', 'author');
+          check([...doc.querySelectorAll('#book-list li')].every(visible), 'Search finds matching authors');
+          set('#filter-language', 'Malayalam', 'change');
+          set('#filter-type', 'Nonfiction', 'change');
+          set('#filter-status', 'Want to read', 'change');
+          check(visible(invalidRow) && !visible(validRow), 'Combined filters isolate matching books');
+          const status = validRow.querySelector('.status-select');
+          status.value = 'Finished';
+          fire(status, 'change');
+          check(status.value === 'Finished', 'A book status can be changed');
+          check(validRow.querySelector('.book-cover img') === validImage, 'Filter and status changes keep the existing cover node');
+
+          doc.querySelector('#reset-filters').click();
+          check([...doc.querySelectorAll('#book-list li')].every(visible), 'Filters can be reset');
+          invalidRow.querySelector('.remove-book').click();
+          await wait();
+          doc = shelf.contentDocument;
+          check(doc.querySelectorAll('#book-list li').length === 2, 'Only the requested book is removed');
+
+          const previousLoad = new Promise((resolve) => shelf.addEventListener('load', resolve, { once: true }));
+          shelf.contentWindow.location.reload();
+          await previousLoad;
+          await wait();
+          doc = shelf.contentDocument;
+          check(doc.querySelectorAll('#book-list li').length === 2, 'Books persist after reload');
+          const persistedImage = doc.querySelector('#book-list li .book-cover img');
+          check(persistedImage, 'The saved valid cover still renders after reload');
+          const coverBox = persistedImage.parentElement;
+          persistedImage.dispatchEvent(new shelf.contentWindow.Event('error'));
+          check(!coverBox.querySelector('img'), 'A cover error replaces the image');
+          check(coverBox.textContent.includes('Cover not available'), 'The missing-cover message is readable');
+
+          const coverHistory = Array.from({ length: 90 }, (_, index) => Date.now() - index - 1);
+          localStorage.setItem('my-reading-shelf.cover-requests.v1', JSON.stringify(coverHistory));
+          const cappedReload = new Promise((resolve) => shelf.addEventListener('load', resolve, { once: true }));
+          shelf.contentWindow.location.reload();
+          await cappedReload;
+          await wait();
+          doc = shelf.contentDocument;
+          const skippedCover = doc.querySelector('#book-list li .book-cover');
+          check(skippedCover && !skippedCover.querySelector('img'), 'The request cap prevents a cover image from loading');
+          check(skippedCover.textContent.includes('Cover skipped for now'), 'The capped cover gets a readable placeholder');
+
+          const originalSetItem = shelf.contentWindow.Storage.prototype.setItem;
+          shelf.contentWindow.Storage.prototype.setItem = function () {
+            throw new Error('Storage is unavailable');
+          };
+          addBook({ title: 'title', author: 'author', language: 'English', type: 'Fiction', isbn: '' });
+          await wait();
+          doc = shelf.contentDocument;
+          check(doc.querySelector('#notice').textContent.length > 0, 'A save failure is explained');
+          shelf.contentWindow.Storage.prototype.setItem = originalSetItem;
+
+          output.textContent = 'PASS: malformed storage, add, ISBN cover/fallback, safe text, search, filters, status, removal, persistence, and storage warning';
+          document.title = 'PASS — My Reading Shelf browser smoke test';
+        } catch (error) {
+          output.textContent = `FAIL: ${error.message}`;
+          document.title = 'FAIL — My Reading Shelf browser smoke test';
+          console.error(error);
+        }
+      })();
+    </script>
+  </body>
+</html>

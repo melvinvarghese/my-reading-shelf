@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#eef4f6">
+    <meta name="description" content="A small, personal shelf for books you want to read and books you have finished.">
+    <title>My Reading Shelf</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="src/books.js" defer></script>
+    <script src="src/cover-limits.js" defer></script>
+    <script src="src/app.js" defer></script>
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="site-header">
+        <a class="wordmark" href="#top" aria-label="My Reading Shelf home">My Reading Shelf</a>
+        <span class="local-note">Your list stays in this browser</span>
+      </header>
+
+      <section class="intro" id="top" aria-labelledby="page-title">
+        <div>
+          <p class="intro-line">A place for the books you keep close</p>
+          <h1 id="page-title">A shelf of<br>what’s next.</h1>
+        </div>
+        <p class="intro-copy">Keep a note of what you hope to read and what has stayed with you. No account needed.</p>
+      </section>
+
+      <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
+
+      <div class="workspace">
+        <section class="entry-panel" aria-labelledby="entry-title">
+          <div class="section-heading">
+            <span class="bookmark-mark" aria-hidden="true"></span>
+            <h2 id="entry-title">Add a book</h2>
+          </div>
+          <p class="panel-copy">Start with a title. A valid ISBN can add a cover.</p>
+
+          <form id="book-form" novalidate>
+            <div class="field">
+              <label for="title">Book title</label>
+              <input id="title" name="title" type="text" autocomplete="off" maxlength="200" required>
+            </div>
+            <div class="field">
+              <label for="author">Author <span class="optional">Optional</span></label>
+              <input id="author" name="author" type="text" autocomplete="off" maxlength="120">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="language">Language</label>
+                <input id="language" name="language" type="text" autocomplete="off" maxlength="40" placeholder="English, Malayalam…" required>
+              </div>
+              <div class="field">
+                <label for="type">Type</label>
+                <select id="type" name="type" required>
+                  <option value="">Choose one</option>
+                  <option value="Fiction">Fiction</option>
+                  <option value="Nonfiction">Nonfiction</option>
+                </select>
+              </div>
+            </div>
+            <div class="field">
+              <label for="isbn">ISBN <span class="optional">Optional</span></label>
+              <input id="isbn" name="isbn" type="text" inputmode="numeric" autocomplete="off" maxlength="24" placeholder="ISBN-10 or ISBN-13">
+              <small class="field-help">A valid ISBN loads a cover from Open Library. The ISBN is sent with that image request.</small>
+            </div>
+            <button class="primary-button" type="submit">Add to shelf</button>
+          </form>
+        </section>
+
+        <section class="shelf-panel" aria-labelledby="shelf-title">
+          <div class="shelf-topline">
+            <div>
+              <p class="intro-line">Your personal collection</p>
+              <h2 id="shelf-title">The shelf</h2>
+            </div>
+            <p id="book-count" class="book-count" aria-live="polite">0 books</p>
+          </div>
+
+          <div class="filter-panel" role="group" aria-label="Find a book">
+            <div class="field search-field">
+              <label for="search">Search</label>
+              <input id="search" type="search" placeholder="Title or author">
+            </div>
+            <div class="filter-row">
+              <div class="field">
+                <label for="filter-language">Language</label>
+                <select id="filter-language">
+                  <option value="">All languages</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="filter-type">Type</label>
+                <select id="filter-type">
+                  <option value="">All types</option>
+                  <option value="Fiction">Fiction</option>
+                  <option value="Nonfiction">Nonfiction</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="filter-status">Status</label>
+                <select id="filter-status">
+                  <option value="">All statuses</option>
+                  <option value="Want to read">Want to read</option>
+                  <option value="Finished">Finished</option>
+                </select>
+              </div>
+            </div>
+            <button id="reset-filters" class="text-button" type="button">Reset filters</button>
+          </div>
+
+          <div class="shelf-rule" aria-hidden="true"></div>
+          <p id="empty-state" class="empty-state">Your shelf is waiting. Add a book you’d like to keep in mind.</p>
+          <p id="no-results" class="empty-state" role="status" aria-live="polite" hidden>No books match those filters. Try changing them.</p>
+          <ul id="book-list" class="book-list" aria-label="Books on your shelf"></ul>
+        </section>
+      </div>
+
+      <footer class="site-footer">
+        <p>Small shelf, one browser. Your books do not sync to other devices.</p>
+        <p>Book cover images provided by <a href="https://openlibrary.org/" target="_blank" rel="noreferrer">Open Library</a>.</p>
+      </footer>
+    </main>
+  </body>
+</html>
